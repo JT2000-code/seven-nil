@@ -1,26 +1,56 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #07140d;
+  --foreground: #eafff2;
+  --pitch-dark: #0a2417;
+  --pitch-light: #0e2e1d;
+  --gold: #f5c542;
+  --grass: #1f9e54;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-gold: var(--gold);
+  --color-grass: var(--grass);
+  --color-pitch-dark: var(--pitch-dark);
+  --color-pitch-light: var(--pitch-light);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans), system-ui, Arial, sans-serif;
+  background-image:
+    radial-gradient(1200px 600px at 50% -10%, rgba(31, 158, 84, 0.18), transparent),
+    radial-gradient(900px 500px at 90% 110%, rgba(245, 197, 66, 0.08), transparent);
+  background-attachment: fixed;
+}
+
+/* Thin custom scrollbars for draft panels */
+.scroll-slim::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-slim::-webkit-scrollbar-thumb {
+  background: rgba(245, 197, 66, 0.25);
+  border-radius: 999px;
+}
+.scroll-slim::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 197, 66, 0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(245, 197, 66, 0); }
+}
+.pulse-gold {
+  animation: pulse-gold 1.6s infinite;
 }
