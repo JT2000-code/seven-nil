@@ -112,6 +112,7 @@ export default function ResultCard() {
   const [copied, setCopied] = useState(false);
   const [revealed, setRevealed] = useState(0);
   const [done, setDone] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   const total = result?.matches.length ?? 0;
 
@@ -134,6 +135,34 @@ export default function ResultCard() {
     return () => clearTimeout(t);
   }, [result, revealed, done, total]);
 
+  // Once the run is done, prepare the share URL: a self-contained ?d= link
+  // immediately, then upgrade to a short /s/<slug> link if the store is
+  // configured. Done ahead of the click so navigator.share keeps its gesture.
+  useEffect(() => {
+    if (!done || !result) return;
+    const origin = window.location.origin;
+    const encoded = encodeShare(buildSharePayload(Object.values(picks), result, settings));
+    setShareUrl(`${origin}/share?d=${encoded}`);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/share", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ d: encoded }),
+        });
+        if (!res.ok) return;
+        const json = (await res.json()) as { slug?: string | null };
+        if (!cancelled && json.slug) setShareUrl(`${origin}/s/${json.slug}`);
+      } catch {
+        /* keep the ?d= fallback */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [done, result, picks, settings]);
+
   if (!result) return null;
 
   const h = resultHeadline(result);
@@ -146,8 +175,9 @@ export default function ResultCard() {
     if (!result) return;
     const origin =
       typeof window !== "undefined" ? window.location.origin : "https://7-0.world";
-    const payload = buildSharePayload(Object.values(picks), result, settings);
-    const shareUrl = `${origin}/share?d=${encodeShare(payload)}`;
+    const url =
+      shareUrl ??
+      `${origin}/share?d=${encodeShare(buildSharePayload(Object.values(picks), result, settings))}`;
     const text = [
       `7-0 ⚽ — my all-time World XI`,
       h.title + (result.champions ? " 🏆" : ""),
@@ -160,14 +190,14 @@ export default function ResultCard() {
       .join("\n");
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({ title: "7-0", text, url: shareUrl });
+        await navigator.share({ title: "7-0", text, url });
         return;
       } catch {
         /* fall through to clipboard */
       }
     }
     if (typeof navigator !== "undefined" && navigator.clipboard) {
-      await navigator.clipboard.writeText(`${text}\n${shareUrl}`);
+      await navigator.clipboard.writeText(`${text}\n${url}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }

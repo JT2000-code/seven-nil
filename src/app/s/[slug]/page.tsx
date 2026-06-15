@@ -1,23 +1,15 @@
 import type { Metadata } from "next";
 import ShareView from "@/components/ShareView";
 import { decodeShare } from "@/lib/share";
+import { getShare } from "@/lib/shareStore";
 
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
+type Params = Promise<{ slug: string }>;
 
-function getParam(sp: { [key: string]: string | string[] | undefined }): string | undefined {
-  const d = sp.d;
-  return typeof d === "string" ? d : undefined;
-}
-
-export async function generateMetadata({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}): Promise<Metadata> {
-  const sp = await searchParams;
-  const d = getParam(sp);
-  const data = d ? decodeShare(d) : null;
-  const ogUrl = `/api/og${d ? `?d=${encodeURIComponent(d)}` : ""}`;
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+  const { slug } = await params;
+  const encoded = await getShare(slug);
+  const data = encoded ? decodeShare(encoded) : null;
+  const ogUrl = `/api/og${slug ? `?id=${encodeURIComponent(slug)}` : ""}`;
 
   const title = data
     ? `${data.t} — my all-time World XI | 7-0`
@@ -44,9 +36,9 @@ export async function generateMetadata({
   };
 }
 
-export default async function SharePage({ searchParams }: { searchParams: SearchParams }) {
-  const sp = await searchParams;
-  const d = getParam(sp);
-  const data = d ? decodeShare(d) : null;
+export default async function ShortSharePage({ params }: { params: Params }) {
+  const { slug } = await params;
+  const encoded = await getShare(slug);
+  const data = encoded ? decodeShare(encoded) : null;
   return <ShareView data={data} />;
 }

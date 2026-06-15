@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { decodeShare, asciiName, type SharePayload } from "@/lib/share";
+import { getShare } from "@/lib/shareStore";
 import { ratingColor, ratingTextColor } from "@/lib/ui";
 
 export const runtime = "nodejs";
@@ -33,7 +34,10 @@ function titleColor(d: SharePayload): string {
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const param = searchParams.get("d");
+  // Short links carry ?id=<slug> (resolved via the store); legacy links carry
+  // the full payload in ?d=<base64>.
+  const id = searchParams.get("id");
+  const param = id ? await getShare(id) : searchParams.get("d");
   const data = (param && decodeShare(param)) || FALLBACK;
   const hasResult = data !== FALLBACK && (data.w || data.d || data.l);
   const stars = data.xi.slice(0, 4);
