@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Confetti from "./Confetti";
 import TournamentBracket from "./TournamentBracket";
+import ShareModal from "./ShareModal";
 import { useGameStore } from "@/lib/store";
 import { buildSharePayload, encodeShare, resultHeadline } from "@/lib/share";
 import type { MatchResult } from "@/lib/types";
@@ -109,7 +110,7 @@ export default function ResultCard() {
   const picks = useGameStore((s) => s.picks);
   const settings = useGameStore((s) => s.settings);
   const reset = useGameStore((s) => s.reset);
-  const [copied, setCopied] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [revealed, setRevealed] = useState(0);
   const [done, setDone] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -171,37 +172,22 @@ export default function ResultCard() {
     setDone(true);
   };
 
-  async function share() {
-    if (!result) return;
-    const origin =
-      typeof window !== "undefined" ? window.location.origin : "https://7-0.world";
-    const url =
-      shareUrl ??
-      `${origin}/share?d=${encodeShare(buildSharePayload(Object.values(picks), result, settings))}`;
-    const text = [
-      `7-0 ⚽ — my all-time World XI`,
-      h.title + (result.champions ? " 🏆" : ""),
-      `${result.wins}W ${result.draws}D ${result.losses}L · ${result.goalsFor} for, ${result.goalsAgainst} against · rated ${result.teamRating}`,
-      result.goldenBoot && result.goldenBoot.goals > 0
-        ? `Golden Boot: ${result.goldenBoot.name} (${result.goldenBoot.goals})`
-        : "",
-    ]
-      .filter(Boolean)
-      .join("\n");
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({ title: "7-0", text, url });
-        return;
-      } catch {
-        /* fall through to clipboard */
-      }
-    }
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      await navigator.clipboard.writeText(`${text}\n${url}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  }
+  const shareText = [
+    `7-0 ⚽ — my all-time World XI`,
+    h.title + (result.champions ? " 🏆" : ""),
+    `${result.wins}W ${result.draws}D ${result.losses}L · ${result.goalsFor} for, ${result.goalsAgainst} against · rated ${result.teamRating}`,
+    result.goldenBoot && result.goldenBoot.goals > 0
+      ? `Golden Boot: ${result.goldenBoot.name} (${result.goldenBoot.goals})`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const effectiveShareUrl =
+    shareUrl ??
+    (typeof window !== "undefined"
+      ? `${window.location.origin}/share?d=${encodeShare(buildSharePayload(Object.values(picks), result, settings))}`
+      : "");
 
   const bracketRevealed = done ? total : revealed;
   const currentIndex = done ? null : revealed - 1;
@@ -332,10 +318,10 @@ export default function ResultCard() {
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
-              onClick={share}
+              onClick={() => setShareOpen(true)}
               className="flex-1 rounded-xl bg-gold py-3 font-black text-black transition hover:brightness-105"
             >
-              {copied ? "Link copied!" : "Share result"}
+              Share result
             </button>
             <button
               type="button"
@@ -346,6 +332,17 @@ export default function ResultCard() {
             </button>
           </div>
         </>
+      )}
+
+      {shareOpen && (
+        <ShareModal
+          result={result}
+          picks={Object.values(picks)}
+          settings={settings}
+          shareUrl={effectiveShareUrl}
+          shareText={shareText}
+          onClose={() => setShareOpen(false)}
+        />
       )}
     </div>
   );
