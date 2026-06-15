@@ -43,15 +43,21 @@ export default function SlotReel() {
   const minYear = useGameStore((s) => s.settings.minYear);
   const spinSeq = useGameStore((s) => s.spinSeq);
   const spinTargetId = useGameStore((s) => s.spinTargetId);
+  const lastSquadId = useGameStore((s) => s.lastSquadId);
   const isSpinning = useGameStore((s) => s.isSpinning);
   const completeSpin = useGameStore((s) => s.completeSpin);
+
+  // The squad shown on the payline. During a spin this is the new target; once
+  // landed it persists via lastSquadId so the reel keeps showing the country
+  // after the player is drafted — right up until the next spin begins.
+  const landedId = spinTargetId ?? lastSquadId;
 
   // The strip of tiles for this spin. The winning squad is fixed at LANDING;
   // every other tile is a random eligible squad for visual variety.
   const reel = useMemo<TournamentSquad[]>(() => {
     const pool = eligibleSquads(minYear);
     if (pool.length === 0) return [];
-    const target = spinTargetId ? getSquad(spinTargetId) : undefined;
+    const target = landedId ? getSquad(landedId) : undefined;
     const arr: TournamentSquad[] = [];
     for (let i = 0; i < REEL_LEN; i++) {
       if (target && i === LANDING) arr.push(target);
@@ -63,7 +69,7 @@ export default function SlotReel() {
 
   // translateY that centres reel index k on the payline.
   const centerY = (k: number) => (1 - k) * ITEM_H;
-  const hasSpun = spinSeq > 0 && Boolean(spinTargetId);
+  const hasSpun = spinSeq > 0 && Boolean(landedId);
   const targetY = centerY(hasSpun ? LANDING : 1);
 
   return (

@@ -9,6 +9,7 @@ import type {
   TournamentSquad,
 } from "./types";
 import { getFormation } from "./formations";
+import { slotAccepts } from "./positions";
 import { eligibleSquads, getSquad } from "./data/squads";
 import { simulateTournament } from "./simulate";
 
@@ -141,7 +142,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { settings, picks } = get();
     const formation = getFormation(settings.formationId);
     return formation.slots
-      .filter((s) => !picks[s.id] && player.positions.includes(s.role))
+      .filter((s) => !picks[s.id] && slotAccepts(s.role, player.positions))
       .map((s) => s.id);
   },
 
@@ -152,7 +153,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (Object.values(picks).some((pk) => pk.player.name === player.name)) return;
     const formation = getFormation(settings.formationId);
     const slot = formation.slots.find((s) => s.id === slotId);
-    if (!slot || !player.positions.includes(slot.role)) return;
+    if (!slot || !slotAccepts(slot.role, player.positions)) return;
 
     const pick: Pick = {
       slotId,
@@ -182,7 +183,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!pick || fromSlotId === toSlotId || state.picks[toSlotId]) return state;
       const formation = getFormation(state.settings.formationId);
       const toSlot = formation.slots.find((s) => s.id === toSlotId);
-      if (!toSlot || !pick.player.positions.includes(toSlot.role)) return state;
+      if (!toSlot || !slotAccepts(toSlot.role, pick.player.positions)) return state;
       const next = { ...state.picks };
       delete next[fromSlotId];
       next[toSlotId] = { ...pick, slotId: toSlotId };

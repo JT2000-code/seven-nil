@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import Bunting from "@/components/Bunting";
 import FormationBoard from "@/components/FormationBoard";
@@ -42,6 +43,14 @@ function ReadyPanel() {
 export default function GamePage() {
   const phase = useGameStore((s) => s.phase);
   const reset = useGameStore((s) => s.reset);
+  const resultColRef = useRef<HTMLDivElement>(null);
+
+  // On mobile the result sits below the pitch — bring it into view on sim.
+  useEffect(() => {
+    if (phase === "result") {
+      resultColRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [phase]);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -74,7 +83,7 @@ export default function GamePage() {
             <div className="lg:sticky lg:top-6 lg:self-start">
               <FormationBoard />
             </div>
-            <div>
+            <div ref={resultColRef}>
               {phase === "drafting" && <DraftPanel />}
               {phase === "complete" && <ReadyPanel />}
               {phase === "result" && <ResultCard />}

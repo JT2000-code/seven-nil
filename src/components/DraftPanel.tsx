@@ -3,8 +3,9 @@
 import { useMemo } from "react";
 import SlotReel from "./SlotReel";
 import { getFormation } from "@/lib/formations";
+import { slotAccepts } from "@/lib/positions";
 import { useGameStore } from "@/lib/store";
-import { displayRating, ratingColor, ratingTextColor } from "@/lib/ui";
+import { displayRating, ratingColor, ratingTextColor, POSITION_FULL } from "@/lib/ui";
 import type { Position, SquadPlayer } from "@/lib/types";
 
 export default function DraftPanel() {
@@ -24,13 +25,20 @@ export default function DraftPanel() {
   const filled = Object.keys(picks).length;
   const total = formation.slots.length;
 
-  const emptyRoles = useMemo(() => {
-    const set = new Set<Position>();
-    formation.slots.forEach((s) => {
-      if (!picks[s.id]) set.add(s.role);
+  const openSlots = useMemo(
+    () => formation.slots.filter((s) => !picks[s.id]),
+    [formation, picks],
+  );
+
+  // One placement option per open role (first open slot of each role).
+  const placementSlots = useMemo(() => {
+    const seen = new Set<string>();
+    return openSlots.filter((s) => {
+      if (seen.has(s.role)) return false;
+      seen.add(s.role);
+      return true;
     });
-    return set;
-  }, [formation, picks]);
+  }, [openSlots]);
 
   // Names already in the XI — a player can only be drafted once.
   const draftedNames = useMemo(
@@ -44,9 +52,9 @@ export default function DraftPanel() {
   function isEligible(player: SquadPlayer): boolean {
     if (draftedNames.has(player.name)) return false;
     if (positionFirst) {
-      return selectedSlot ? player.positions.includes(selectedSlot.role) : false;
+      return selectedSlot ? slotAccepts(selectedSlot.role, player.positions) : false;
     }
-    return player.positions.some((p) => emptyRoles.has(p));
+    return openSlots.some((s) => slotAccepts(s.role, player.positions));
   }
 
   const noFit = Boolean(
@@ -128,14 +136,19 @@ export default function DraftPanel() {
                 Spin again (free)
               </button>
             </div>
+          ) : pendingPlayer && !positionFirst ? (
+            <PlacePanel
+              player={pendingPlayer}
+              slots={placementSlots}
+              onPlace={(slotId) => assignPick(pendingPlayer, slotId)}
+              onCancel={() => choosePlayer(null)}
+            />
           ) : (
             <>
               <p className="text-xs text-emerald-200/60">
                 {positionFirst
                   ? `Pick a player for ${selectedSlot?.label}.`
-                  : pendingPlayer
-                    ? "Now tap a highlighted position on the pitch."
-                    : "Tap a player to draft them."}
+                  : "Tap a player to draft them."}
               </p>
               <ul className="flex max-h-64 flex-col gap-1 overflow-y-auto scroll-slim pr-1">
                 {currentSquad.players.map((p) => {
@@ -184,6 +197,80 @@ export default function DraftPanel() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function PlacePanel({
+  player,
+  slots,
+  onPlace,
+  onCancel,
+}: {
+  player: SquadPlayer;
+  slots: { id: string; role: Position; label: string }[];
+  onPlace: (slotId: string) => void;
+  onCancel: () => void;
+}) {
+  const available = slots.filter((s) => slotAccepts(s.role, player.positions));
+  const unavailable = slots.filter((s) => !slotAccepts(s.role, player.positions));
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-black">
+          Place <span className="text-gold">{player.name}</span>
+        </p>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-white/15 px-3 py-1 text-xs font-bold text-white/70 transition hover:bg-white/10"
+        >
+          Cancel
+        </button>
+      </div>
+
+      {available.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300/70">
+            Available ({available.length})
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {available.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => onPlace(s.id)}
+                className="rounded-lg bg-red-500/90 px-3 py-2 text-sm font-bold text-white shadow transition hover:bg-red-500"
+              >
+                {POSITION_FULL[s.role]} ({s.label})
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {unavailable.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-white/30">
+            Unavailable
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {unavailable.map((s) => (
+              <span
+                key={s.id}
+                className="rounded-lg bg-white/5 px-3 py-2 text-sm font-medium text-white/30"
+              >
+                {s.label} · N/A
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="text-[11px] text-emerald-200/50">
+        Or tap a highlighted position on the pitch.
+      </p>
     </div>
   );
 }

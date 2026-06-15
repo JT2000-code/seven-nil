@@ -38,6 +38,13 @@ const OPPONENT_POOL = [
   "Nigeria", "Japan", "Colombia", "Denmark", "Sweden", "Ghana", "Morocco",
 ];
 
+// The Final should pit you against a realistic heavyweight — the nations that
+// have actually contested World Cup finals, ranked by appearances.
+const FINALIST_POOL = [
+  "Germany", "Brazil", "Italy", "Argentina", "France",
+  "Netherlands", "Uruguay", "England", "Spain", "Croatia",
+];
+
 const ATTACK_WEIGHT: Record<Position, number> = {
   ST: 6, RW: 4.2, LW: 4.2, CAM: 3.4, RM: 2.2, LM: 2.2,
   CM: 1.3, CDM: 0.5, CB: 0.22, RB: 0.3, LB: 0.3, GK: 0.02,
@@ -57,13 +64,23 @@ export function teamRating(picks: Pick[], mode: RatingMode): number {
   return Math.round(sum / picks.length);
 }
 
-function pickOpponents(rng: () => number): string[] {
-  const pool = [...OPPONENT_POOL];
-  for (let i = pool.length - 1; i > 0; i--) {
+function shuffle(arr: readonly string[], rng: () => number): string[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  return pool.slice(0, ROUNDS.length);
+  return a;
+}
+
+function pickOpponents(rng: () => number): string[] {
+  // Every round before the Final draws from the broad pool…
+  const early = shuffle(OPPONENT_POOL, rng).slice(0, ROUNDS.length - 1);
+  // …and the Final draws an elite finalist nation, never repeating an opponent.
+  const used = new Set(early);
+  const finalOpp =
+    shuffle(FINALIST_POOL, rng).find((n) => !used.has(n)) ?? FINALIST_POOL[0];
+  return [...early, finalOpp];
 }
 
 function shootout(rng: () => number, edge: number): { us: number; them: number } {

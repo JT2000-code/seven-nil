@@ -62,11 +62,11 @@ export default function Home() {
             Start New Run →
           </Link>
 
-          <div className="mt-12 grid w-full grid-cols-3 gap-4">
+          <div className="mt-12 grid w-full grid-cols-3 gap-3 sm:gap-4">
             {STATS.map((s) => (
-              <div key={s.label} className="rounded-xl border border-white/10 bg-black/20 p-4">
-                <p className="text-2xl font-black text-gold">{s.value}</p>
-                <p className="mt-1 text-xs uppercase tracking-wider text-emerald-200/60">
+              <div key={s.label} className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-3 sm:p-4">
+                <p className="text-xl font-black text-gold sm:text-2xl">{s.value}</p>
+                <p className="mt-1 text-[10px] uppercase leading-tight tracking-wide text-emerald-200/60 sm:text-xs sm:tracking-wider">
                   {s.label}
                 </p>
               </div>

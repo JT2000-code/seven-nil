@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getFormation } from "@/lib/formations";
+import { slotAccepts } from "@/lib/positions";
 import { useGameStore } from "@/lib/store";
 import { displayRating, ratingColor, ratingTextColor } from "@/lib/ui";
 
@@ -42,7 +43,7 @@ export default function FormationBoard() {
     if (!subject) return new Set<string>();
     return new Set(
       formation.slots
-        .filter((s) => !picks[s.id] && subject.positions.includes(s.role))
+        .filter((s) => !picks[s.id] && slotAccepts(s.role, subject.positions))
         .map((s) => s.id),
     );
   }, [subject, picks, formation]);
